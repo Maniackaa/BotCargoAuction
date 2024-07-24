@@ -1,0 +1,181 @@
+import datetime
+from pprint import pprint
+
+import requests
+
+order_info = {
+ 'BidPrice': 800.0,
+ 'BidStatus': 1,
+ 'BidsCount': 1,
+ 'BidsType': 'B',
+ 'BidСonditions': '',
+ 'Cargo': 'Наименование',
+ 'Description': 'Комментарий',
+ 'Direction': {'AuthorId': 1,
+               'CreateDate': '/Date(1601650988846)/',
+               'DeliveryPeriod': 2,
+               'Description': '2 суток',
+               'DirectionId': 12962,
+               'FromCity': {'CityId': 393,
+                            'CityName': 'Саратов',
+                            'Description': '',
+                            'IsDeleted': None},
+               'FromCityId': 393,
+               'HighPrice': 3000000.0,
+               'IsDeleted': None,
+               'LowPrice': 1000.0,
+               'ToCity': {'CityId': 839,
+                          'CityName': 'Арамиль',
+                          'Description': None,
+                          'IsDeleted': None},
+               'ToCityId': 839,
+               'Updated': '/Date(1601650988846)/',
+               'UpdatedUserId': 1},
+ 'DueDate': None,
+ 'ExtraServices': [{'CountdownEvent': 0,
+                    'ExtraServiceCount': 3,
+                    'ExtraServiceId': 4,
+                    'ExtraServiceName': 'Грузчики',
+                    'ExtraServicePackId': 8822,
+                    'ExtraServicePrice': 1000.0,
+                    'IsCountable': 20,
+                    'PriceNDS': 1200.0},
+                   {'CountdownEvent': 0,
+                    'ExtraServiceCount': 4,
+                    'ExtraServiceId': 28,
+                    'ExtraServiceName': 'Доп часы',
+                    'ExtraServicePackId': 8821,
+                    'ExtraServicePrice': 2000.0,
+                    'IsCountable': 1000,
+                    'PriceNDS': 2400.0},
+                   {'CountdownEvent': 0,
+                    'ExtraServiceCount': 1,
+                    'ExtraServiceId': 47,
+                    'ExtraServiceName': 'Экспедирование',
+                    'ExtraServicePackId': 8820,
+                    'ExtraServicePrice': 3000.0,
+                    'IsCountable': 1,
+                    'PriceNDS': 3600.0}],
+ 'ExtraServicesPrice': 14000.0,
+ 'FilingTime': '06:45',
+ 'FromAddress': '',
+ 'NewDueDate': None,
+ 'NewSlideDate': None,
+ 'NewStartDate': '/Date(1721865600000)/',
+ 'NormalGOSumm': 0.0,
+ 'PriceNDS': 2400.0,
+ 'SlideDate': None,
+ 'StartDate': '/Date(1721865600000)/',
+ 'ToAddress': '',
+ 'TreedingFeeSumm': 200.0,
+ 'Vehicle': {'Description': '',
+             'DownloadType': {'DownloadTypeId': 1,
+                              'DownloadTypeName': 'Задняя',
+                              'IsDeleted': None,
+                              'SortOrder': 10},
+             'DownloadTypeId': 1,
+             'IsDeleted': None,
+             'SortOrder': 2150,
+             'Tonnage': {'IsDeleted': None,
+                         'SortOrder': 100,
+                         'TonnageId': 21,
+                         'TonnageName': '10т',
+                         'VehicleProfilesViews': []},
+             'TonnageId': 21,
+             'UntentingPrice': 0.0,
+             'VehicleProfileId': 144,
+             'VehicleProfileName': 'Терм 10т 15 пал',
+             'VehicleType': {'IsDeleted': None,
+                             'SortOrder': 410,
+                             'VehicleTypeId': 17,
+                             'VehicleTypeName': 'Термос 15 пал'},
+             'VehicleTypeId': 17,
+             'Vehicles': []},
+ 'VehicleCount': 2,
+ 'VehiclePrice': 800.0}
+
+
+def create_order(order_info, cookies=None):
+    """
+    data = {
+        'bids[0].BidDate': '2024-07-25T00:00:00.000Z',
+        'bids[0].DirectionId': '12962',
+        'bids[0].Price': '800',
+        'bids[0].VehicleProfileId': '144',
+        'vehicleTotal': '2',
+        'slideDayTotal': '0',
+        'extraServices[0].Count': '3',
+        'extraServices[0].ExtraServicesPacksDetailId': '8822',
+        'extraServices[0].VehicleProfileId': '144',
+        'extraServices[0].ExtraServiceId': '4',
+        'extraServices[0].ExtraServicesPacksId': '1211',
+        'extraServices[1].Count': '4',
+        'extraServices[1].ExtraServicesPacksDetailId': '8821',
+        'extraServices[1].VehicleProfileId': '144',
+        'extraServices[1].ExtraServiceId': '28',
+        'extraServices[1].ExtraServicesPacksId': '1211',
+        'extraServices[2].Count': '1',
+        'extraServices[2].ExtraServicesPacksDetailId': '8820',
+        'extraServices[2].VehicleProfileId': '144',
+        'extraServices[2].ExtraServiceId': '47',
+        'extraServices[2].ExtraServicesPacksId': '1211',
+        'description': 'Комментарий',
+        'mainVehicleProfileId': '144',
+        'fromAddress': '',
+        'toAddress': '',
+        'cargo': 'Наименование',
+        'filingTime': '06:45',
+        'PriceNDS': '2400',
+    }
+    """
+    BidDate = order_info['StartDate']
+    BidDate = int(''.join([x for x in BidDate if x.isdigit()])[:-3])
+    BidDate = datetime.datetime.utcfromtimestamp(BidDate).isoformat()
+    Direction = order_info['Direction']
+    Vehicle = order_info.get('Vehicle')
+    ExtraServices = order_info.get('ExtraServices')
+
+    data = {
+        'bids[0].BidDate': BidDate,
+        'bids[0].DirectionId': Direction.get('DirectionId'),
+        'bids[0].Price': order_info.get('BidPrice'),
+        'bids[0].VehicleProfileId': Vehicle.get('VehicleProfileId'),
+        'vehicleTotal': order_info.get(f'VehicleCount'),
+        'slideDayTotal': '0',
+        'extraServices[0].Count': ExtraServices[0].get('ExtraServiceCount'),
+        'extraServices[0].ExtraServicesPacksDetailId': ExtraServices[0].get('ExtraServicePackId'),
+        'extraServices[0].VehicleProfileId': Vehicle.get('VehicleProfileId'),
+        'extraServices[0].ExtraServiceId': ExtraServices[0].get('ExtraServiceId'),
+        'extraServices[0].ExtraServicesPacksId': ExtraServices[0].get('ExtraServicePackId'),
+        'extraServices[1].Count': ExtraServices[1].get('ExtraServiceCount'),
+        'extraServices[1].ExtraServicesPacksDetailId': ExtraServices[1].get('ExtraServicePackId'),
+        'extraServices[1].VehicleProfileId': Vehicle.get('VehicleProfileId'),
+        'extraServices[1].ExtraServiceId': ExtraServices[1].get('ExtraServiceId'),
+        'extraServices[1].ExtraServicesPacksId': ExtraServices[1].get('ExtraServicePackId'),
+        'extraServices[2].Count': ExtraServices[2].get('ExtraServiceCount'),
+        'extraServices[2].ExtraServicesPacksDetailId': ExtraServices[2].get('ExtraServicePackId'),
+        'extraServices[2].VehicleProfileId': Vehicle.get('VehicleProfileId'),
+        'extraServices[2].ExtraServiceId': ExtraServices[2].get('ExtraServiceId'),
+        'extraServices[2].ExtraServicesPacksId': ExtraServices[2].get('ExtraServicePackId'),
+        'description': order_info.get('Description'),
+        'mainVehicleProfileId': Vehicle.get('VehicleProfileId'),
+        'fromAddress': order_info.get('FromAddress'),
+        'toAddress':  order_info.get('ToAddress'),
+        'cargo': order_info.get('Cargo'),
+        'filingTime': order_info.get('FilingTime'),
+        'PriceNDS': order_info.get('PriceNDS'),
+    }
+    for k, v in data.items():
+        data[k] = str(v)
+    pprint(data)
+
+    response = requests.post('https://dev2.bgruz.com/Bid/CreateBids', cookies=cookies, data=data)
+    print(response)
+    print(response.text)
+
+
+cookies = {
+    '.ASPXAUTH': '4416CB9DD05E6BB8FCC82D8D1B70EF57A91805BAA974342F80425C1583426BE751AB071901F27C0912CF41A0433DDBBD283C39F5710BB67A7606EA18331F4EE4E57D7E9984019DF13B04265C0D7681F7DC700879',
+    'TransportMarket_LCID': '1049',
+}
+create_order(order_info, cookies=cookies)
