@@ -121,13 +121,25 @@ async def fill_order_info(login, password):
         session.commit()
 
 
+async def find_orders_to_job(ready_time=120):
+    # Находит заказы время активации которых подходит к концу
+    session = Session(expire_on_commit=False)
+    now = datetime.datetime.utcnow()
+    threshold = now + datetime.timedelta(seconds=ready_time)
+    logger.debug(f'find_orders_to_job < {threshold}')
+    with session:
+        q = select(Order).where(Order.activation_time <= threshold)
+        result = session.execute(q).scalars().all()
+        return result
+
 async def main():
-    await refresh_db(settings.LOGIN, settings.PASSWORD)
+    # await refresh_db(settings.LOGIN, settings.PASSWORD)
     # get_not_sendet_orders_from_db()
     # get_users_to_send()
     # get_messages_to_delete()
-    await fill_order_info(settings.LOGIN, settings.PASSWORD)
-
+    # await fill_order_info(settings.LOGIN, settings.PASSWORD)
+    jobs = await find_orders_to_job()
+    print(jobs)
     pass
 
 if __name__ == '__main__':

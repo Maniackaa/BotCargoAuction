@@ -111,6 +111,7 @@ async def get_active_orders(login='tutu', password='123') -> list[dict]:
         rows = orders_data.get('rows')
         # {'order_id': '450503', 'status': 'На ожидании', 'link_num': '317624', 'from_city': 'Самара', 'to_city': 'Пермь', 'profile': 'Контейнеровоз 20"', 'price': 400.0, 'order_info': {'StartDate': '/Date(1703462400000)/', 'DueDate': None, 'SlideDate': None, 'Direction': {'DirectionId': 12742, 'Description': '2 суток', 'LowPrice': 1000.0, 'HighPrice': 3000000.0, 'FromCityId': 317, 'ToCityId': 4, 'IsDeleted': None, 'AuthorId': 1, 'CreateDate': '/Date(1601650988846)/', 'UpdatedUserId': 1, 'Updated': '/Date(1601650988846)/', 'DeliveryPeriod': 2, 'FromCity': {'CityId': 317, 'CityName': 'Самара', 'IsDeleted': None, 'Description': None}, 'ToCity': {'CityId': 4, 'CityName': 'Пермь', 'IsDeleted': None, 'Description': None}}, 'Vehicle': {'VehicleProfileId': 47, 'VehicleProfileName': 'Контейнеровоз 20"', 'Description': 'Платформа', 'VehicleTypeId': 6, 'TonnageId': 1, 'UntentingPrice': 0.0, 'DownloadTypeId': 1, 'IsDeleted': None, 'SortOrder': 5000, 'VehicleType': {'VehicleTypeId': 6, 'VehicleTypeName': 'Контейнеровоз 20"', 'IsDeleted': None, 'SortOrder': 1500}, 'Tonnage': {'TonnageName': '20т', 'TonnageId': 1, 'IsDeleted': None, 'SortOrder': 120, 'VehicleProfilesViews': []}, 'DownloadType': {'DownloadTypeId': 1, 'DownloadTypeName': 'Задняя', 'IsDeleted': None, 'SortOrder': 10}, 'Vehicles': []}, 'VehiclePrice': 400.0, 'VehicleCount': 1, 'ExtraServices': [], 'ExtraServicesPrice': 0.0, 'BidsType': 'B', 'TreedingFeeSumm': 0.0, 'BidPrice': 400.0, 'NormalGOSumm': 0.0, 'Description': 'Коммент', 'BidsCount': 1, 'NewStartDate': '/Date(1703462400000)/', 'NewDueDate': None, 'NewSlideDate': None, 'BidStatus': 1, 'FromAddress': 'Адрес погрузки:', 'ToAddress': 'Адрес выгрузки:', 'Cargo': 'Наименование груз', 'FilingTime': '09:30', 'PriceNDS': 0.0, 'BidСonditions': ''}, 'target_date': datetime.datetime(2023, 12, 25, 7, 0)}
         for row in rows:
+            print(row)
             order = {}
             order_id = row['id']
             cell = row.get('cell')
@@ -128,7 +129,10 @@ async def get_active_orders(login='tutu', password='123') -> list[dict]:
             if cell[19]:
                 print(cell[19])
                 act_time = datetime.datetime.strptime(cell[19], '%H:%M:%S').time()
-                order['activation_time'] = datetime.datetime.combine(start_date, act_time)
+                now_date = settings.tz.localize(datetime.datetime.utcnow()).date()
+                order['activation_time'] = datetime.datetime.combine(now_date, act_time) - datetime.timedelta(hours=3)
+            else:
+                order['activation_time'] = None
 
 
             orders.append(order)
@@ -167,7 +171,7 @@ async def get_token(cookies):
     return response.get('ConnectionToken')
 
 
-async def get_auction_data() -> str:
+async def get_auction_data() -> list:
     cookies = await get_async_cookies(settings.LOGIN, settings.PASSWORD)
     cookies = cookies['cookies_dict']
     token = await get_token(cookies)

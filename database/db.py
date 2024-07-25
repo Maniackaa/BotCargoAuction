@@ -111,7 +111,7 @@ class Order(Base):
     order_info = mapped_column(JSON, nullable=True)
     image: Mapped[str] = mapped_column(String(100), nullable=True)
     is_sended: Mapped[int] = mapped_column(Integer(), default=0)
-    activation_time: Mapped[datetime.datetime] = mapped_column(DateTime(), nullable=True)
+    activation_time: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), nullable=True)
     # messages = relationship("Message", back_populates="order")
     messages: Mapped[List['Message']] = relationship('Message', back_populates='order',
                                                      cascade='save-update, merge, delete',
@@ -119,6 +119,10 @@ class Order(Base):
 
     def __repr__(self):
         return f'{self.id}: {self.order_id} {self.status}'
+
+    def time_to_activation(self) -> datetime.timedelta:
+        if self.activation_time:
+            return (self.activation_time - datetime.datetime.utcnow()).total_seconds()
 
     @classmethod
     def get_items(cls):
