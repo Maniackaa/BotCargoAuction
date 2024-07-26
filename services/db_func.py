@@ -74,7 +74,7 @@ async def refresh_db(login, password):
         # Проверим есть ли заказы с обновления в базе. Если нет - добавим в базу.
         # Если есть обновим статус с обновления и обновим order_info.
         for order in response_orders:
-            print(order)
+            # print(order)
             order_id = order['order_id']
             order_from_db_q = select(Order).where(Order.order_id == order_id).limit(1)
             order_from_db: Order = session.execute(order_from_db_q).scalar()
@@ -97,7 +97,6 @@ def get_order_from_id(pk) -> Order:
         return order
 
 
-
 async def fill_order_info(login, password):
     """Заполняет Активные и На ожидании order info если он пуст"""
     session = Session(expire_on_commit=False)
@@ -108,7 +107,6 @@ async def fill_order_info(login, password):
         cookies = await get_async_cookies(login, password)
         cookies_dict = cookies['cookies_dict']
         for order in orders:
-            print(order)
             order_info = await get_order_info(order.order_id, cookies=cookies_dict)
             if order_info:
                 order.order_info = order_info
@@ -121,16 +119,17 @@ async def fill_order_info(login, password):
         session.commit()
 
 
-async def find_orders_to_job(ready_time=120):
+async def find_orders_to_job(ready_time=60):
     # Находит заказы время активации которых подходит к концу
     session = Session(expire_on_commit=False)
     now = datetime.datetime.utcnow()
     threshold = now + datetime.timedelta(seconds=ready_time)
     logger.debug(f'find_orders_to_job < {threshold}')
     with session:
-        q = select(Order).where(Order.activation_time <= threshold)
+        q = select(Order).where(Order.activation_time <= threshold).where(Order.is_sended == 0)
         result = session.execute(q).scalars().all()
         return result
+
 
 async def main():
     # await refresh_db(settings.LOGIN, settings.PASSWORD)

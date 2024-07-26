@@ -87,14 +87,19 @@ def get_my_loggers():
             LogJump(full_path=False),
             structlog.dev.ConsoleRenderer(),
         ],
-        wrapper_class=structlog.make_filtering_bound_logger(logging.NOTSET),
+        wrapper_class=structlog.make_filtering_bound_logger(logging.INFO),
         context_class=dict,
         # logger_factory=structlog.PrintLoggerFactory(),
         logger_factory=get_factory(),
         cache_logger_on_first_use=False,
     )
-    return structlog.stdlib.get_logger()
+    logger1 = structlog.stdlib.get_logger()
+    return logger1
 
 
 logger = get_my_loggers()
+logger.debug(str(settings))
 logger.info(str(settings))
+logger.warning(str(settings))
+logger.error(str(settings))
+logger.critical(str(settings))

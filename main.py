@@ -5,6 +5,7 @@ import aioschedule
 
 from config.bot_settings import logger, settings
 from services.db_func import refresh_db, fill_order_info, find_orders_to_job
+from services.tasks import task_order_check
 
 err_log = logger
 
@@ -28,24 +29,19 @@ async def fill_order_info_job():
         err_log.error(err, exc_info=True)
 
 
-
-async def fill_order_to_job():
-    logger.debug('Задача поиска заказов для работы')
+async def find_order_job():
+    logger.info('Задача поиска заказов для работы')
     orders = await find_orders_to_job()
     for order in orders:
-        logger.debug(f'Запускаем заказ {order}')
-        # asyncio.create_task()
-
-async def timer(start):
-
-    print(round(time.perf_counter(), 2), round(time.perf_counter() - start, 2))
+        logger.info(f'Запускаем заказ {order}')
+        asyncio.create_task(task_order_check(order))
 
 
 async def shedulers():
     start = time.perf_counter()
-    aioschedule.every(5).seconds.do(refresh_orders_list)
+    aioschedule.every(15).seconds.do(refresh_orders_list)
     aioschedule.every(5).seconds.do(fill_order_info_job)
-    # aioschedule.every(10).seconds.do(find_order_to_start_job)
+    aioschedule.every(3).seconds.do(find_order_job)
     # aioschedule.every(1).seconds.do(timer, start)
     while True:
         await aioschedule.run_pending()

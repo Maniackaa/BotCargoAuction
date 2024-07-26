@@ -120,7 +120,7 @@ class Order(Base):
     def __repr__(self):
         return f'{self.id}: {self.order_id} {self.status}'
 
-    def time_to_activation(self) -> datetime.timedelta:
+    def time_to_activation(self) -> int:
         if self.activation_time:
             return (self.activation_time - datetime.datetime.utcnow()).total_seconds()
 
