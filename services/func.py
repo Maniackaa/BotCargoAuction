@@ -9,7 +9,6 @@ from pprint import pprint
 import requests
 
 
-from services.db_func import get_order_from_id
 
 import datetime
 import json
@@ -78,7 +77,7 @@ async def get_aiohttp_response(url, response_type='text', headers=None, data=Non
 
 
 async def post_aiohttp_response(url, response_type='text', headers=None, params=None, data=None, cookies=None,
-                                cookie_jar=aiohttp.CookieJar(unsafe=True), content_type='text/html'):
+                                cookie_jar=aiohttp.CookieJar(unsafe=True), content_type='text/html', count=1):
     async with aiohttp.ClientSession(cookie_jar=cookie_jar) as session:
         async with session.post(url,
                                 headers=headers,
@@ -95,7 +94,10 @@ async def post_aiohttp_response(url, response_type='text', headers=None, params=
                     result = await response.text(encoding='UTF-8')
                 return result
             else:
-                raise ConnectionError(f'Неверный ответ от сервера: {response}')
+                logger.warning(f'Неверный ответ от сервера: {response}')
+                if count < 3:
+                    await asyncio.sleep(1)
+                    return await post_aiohttp_response(url, response_type, headers, params, data, cookies, cookie_jar, content_type, count + 1)
 
 
 async def get_order_info(order_id: str, cookies) -> dict:
@@ -108,7 +110,7 @@ async def get_order_info(order_id: str, cookies) -> dict:
     url = f'https://dev2.bgruz.com/Bid/GetBidFormData?bidId={order_id}&bidType=B&formMode=1'
     response_json = await get_aiohttp_response(url, response_type='json', cookies=cookies, )
     data = response_json
-    logger.info(f'order_info: {data}')
+    logger.debug(f'order_info: {data}')
     return data
 
 async def get_order_info_from_db(order_id: str, cookies) -> dict:
@@ -173,14 +175,39 @@ async def get_auction_data(cookies, token) -> list:
     url = 'https://dev2.bgruz.com/signalr/send'
     response = await post_aiohttp_response(url, response_type='json', params=params,  data=data, cookies=cookies, content_type='application/json')
     result = json.loads(response.get("R"))
-    with open(BASE_DIR / 'auction_data.txt', 'w', encoding='UTF-8') as file:
-        file.write(json.dumps(result))
-    return json.loads(response.get("R"))
+    if result:
+        with open(BASE_DIR / 'auction_data.txt', 'w', encoding='UTF-8') as file:
+            file.write(json.dumps(result))
+        return json.loads(response.get("R"))
 
 async def read_auction_data():
     with open(BASE_DIR / 'auction_data.txt', 'r', encoding='UTF-8') as file:
         data = json.loads(file.read())
         return data
+
+# async def cancel_order(order_id, token, cookies):
+#     # cookies = await get_async_cookies(settings.LOGIN, settings.PASSWORD)
+#     # cookies = cookies['cookies_dict']
+#     # token = await get_token(cookies)
+#     params = {
+#         'transport': 'serverSentEvents',
+#         'connectionToken': f'{token}',
+#         'connectionData': '[{"name":"matchingpushhub"}]',
+#     }
+#
+#     data_json = {
+#         "H": "matchingpushhub",
+#         "M": "ChangeBidPrice",
+#         "A": [f"{order_id}", 0, "B"],
+#         "I": 3
+#     }
+#     data = {
+#         'data': json.dumps(data_json).replace(' ', '')
+#     }
+#
+#     response = requests.post('https://dev2.bgruz.com/signalr/send', params=params, cookies=cookies, data=data)
+#     logger.info(f'Отмена заказа {order_id}: {response} {response.text}')
+
 
 async def cancel_order(order_id, token, cookies):
     # cookies = await get_async_cookies(settings.LOGIN, settings.PASSWORD)
@@ -202,8 +229,8 @@ async def cancel_order(order_id, token, cookies):
         'data': json.dumps(data_json).replace(' ', '')
     }
 
-    response = requests.post('https://dev2.bgruz.com/signalr/send', params=params, cookies=cookies, data=data)
-    logger.info(f'Отмена заказа {order_id}: {response} {response.text}')
+    response = await post_aiohttp_response(url='https://dev2.bgruz.com/signalr/send', cookies=cookies, data=data, params=params)
+    logger.info(f'Отмена заказа {order_id}: {response} {response}')
 
 
 async def create_order(order_info, cookies=None):
@@ -290,9 +317,9 @@ async def create_order(order_info, cookies=None):
         data[k] = str(v)
     pprint(data)
 
-    response = requests.post('https://dev2.bgruz.com/Bid/CreateBids', cookies=cookies, data=data)
+    # response = requests.post('https://dev2.bgruz.com/Bid/CreateBids', cookies=cookies, data=data)
+    response = await post_aiohttp_response(url='https://dev2.bgruz.com/Bid/CreateBids', cookies=cookies, data=data)
     print(response)
-    print(response.text)
 
 
 
@@ -374,7 +401,7 @@ async def get_active_orders(login='tutu', password='123') -> list[dict]:
             'rows': '100',
             'page': '1',
             'sord': 'desc',
-            'filters': '{"groupOp":"AND","rules":[{"field":"Status","op":"eq","data":"10001"}]}',
+            'filters': '{"groupOp":"AND","rules":[{"field":"Status","op":"eq","data":"1"}]}',
             # Активная + На ожидании
             'customFilters': '{"groupOp":"AND","rules":[{"field":"Bids_OnlyMy","op":"cn","data":false}]}',
             # 'filters': '{"groupOp":"AND","rules":[]}',  # Все
@@ -422,7 +449,7 @@ async def get_active_orders(login='tutu', password='123') -> list[dict]:
 async def refresh_db(login, password):
     logger.debug('Обновляем базу')
     response_orders = await get_active_orders(login, password)
-    logger.debug(f'response_orders: {response_orders}')
+    logger.debug(f'response_orders ({len(response_orders)}): {response_orders}')
     # response_orders.pop()
     response_orders_ids = [order['order_id'] for order in response_orders]
     session = Session(expire_on_commit=False)
@@ -507,6 +534,24 @@ async def find_orders_to_job(ready_time=60):
         result = session.execute(q).scalars().all()
         return result
 
+async def main():
+    x = await get_active_orders(settings.LOGIN, settings.PASSWORD)
+    print(x)
+
+    order = get_last_order()
+    print(order)
+    logger.info('Starting bot')
+    await refresh_async_cookies(settings.LOGIN, settings.PASSWORD)
+    cookies = await read_cookies_dict()
+    print(cookies)
+    token = await refresh_token(cookies)
+    print(token)
+    cookies = await read_cookies_dict()
+    token = await read_token()
+    await cancel_order(order.order_id, cookies=cookies, token=token)
+    await asyncio.sleep(10)
 
 
+if __name__ == '__main__':
+    asyncio.run(main())
 

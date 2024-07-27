@@ -14,13 +14,12 @@ from services.func import get_order_info_from_db
 async def get_auction_data_from_order(order: Order) -> dict:
     # auctions_data = await get_auction_data()
     auctions_data = await read_auction_data()
-    print(auctions_data)
     for order_auction in auctions_data:
-        print(order_auction)
         activation_time = order_auction.get('SoonActivationTime')
         if activation_time:
+            print(activation_time)
             activation_time = datetime.datetime.strptime(activation_time, "%Y-%m-%dT%H:%M:%S.%f").replace(microsecond=0)
-            print(activation_time, order.activation_time)
+            # activation_time = datetime.datetime.strptime(activation_time, "%Y-%m-%dT%H:%M:%S")
             if activation_time == order.activation_time:
                 return order_auction
 
@@ -68,9 +67,9 @@ async def task_order_check(order: Order):
 async def main():
 
     order = get_last_order()
-    print(order)
+
     auction_data = await get_auction_data_from_order(order)
-    print(auction_data)
+
     await task_order_check(order)
     await asyncio.sleep(100)
     # orders = await find_orders_to_job()

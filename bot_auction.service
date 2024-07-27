@@ -1,0 +1,15 @@
+[Unit]
+Description=bot_auction
+After=network.target
+
+[Service]
+EnvironmentFile=
+ExecStart=/root/BotCargoAuction/venv/bin/python3 main.py
+ExecReload=/root/BotCargoAuction/venv/bin/python3 main.py
+WorkingDirectory=/root/BotCargoAuction/
+KillMode=process
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

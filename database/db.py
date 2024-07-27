@@ -79,7 +79,6 @@ class BotSettings(Base):
     description: Mapped[str] = mapped_column(String(255),
                                              nullable=True,
                                              default='')
-    data = mapped_column(JSON, default="[]", nullable=True)
 
     @classmethod
     def get_item(cls, name):

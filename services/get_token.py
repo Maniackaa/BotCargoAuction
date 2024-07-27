@@ -20,7 +20,7 @@ async def main():
     cookies = cookies['cookies_dict']
     response = requests.get('https://dev2.bgruz.com/signalr/negotiate', cookies=cookies)
     token = response.json().get('ConnectionToken')
-    print(token)
+
 
     params = {
         'transport': 'serverSentEvents',
@@ -32,7 +32,7 @@ async def main():
     }
     url = 'https://dev2.bgruz.com/signalr/send'
     response = await post_aiohttp_response(url, response_type='json', params=params,  data=data, cookies=cookies, content_type='application/json')
-    print(response)
+
 
 
 
