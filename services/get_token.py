@@ -3,7 +3,7 @@ import asyncio
 import requests
 
 from config.bot_settings import settings
-from services.api_func import get_async_cookies, post_aiohttp_response
+from services.api_func import post_aiohttp_response
 
 
 
@@ -33,6 +33,7 @@ async def main():
     url = 'https://dev2.bgruz.com/signalr/send'
     response = await post_aiohttp_response(url, response_type='json', params=params,  data=data, cookies=cookies, content_type='application/json')
     print(response)
+
 
 
 

@@ -4,7 +4,8 @@ import time
 import aioschedule
 
 from config.bot_settings import logger, settings
-from services.db_func import refresh_db, fill_order_info, find_orders_to_job
+from services.func import refresh_async_cookies, refresh_token, get_auction_data
+from services.func import refresh_db, fill_order_info, find_orders_to_job, read_cookies_dict, read_token
 from services.tasks import task_order_check
 
 err_log = logger
@@ -30,12 +31,24 @@ async def fill_order_info_job():
 
 
 async def find_order_job():
-    logger.info('Задача поиска заказов для работы')
+    logger.debug('Задача поиска заказов для работы')
     orders = await find_orders_to_job()
     for order in orders:
         logger.info(f'Запускаем заказ {order}')
         asyncio.create_task(task_order_check(order))
 
+async def refresh_auction():
+    logger.debug('refresh_auction')
+    cookies = await read_cookies_dict()
+    token = await read_token()
+    start = time.perf_counter()
+    auction = await get_auction_data(cookies, token)
+    # for a in auction:
+    #     if a.get('SoonActivationTime'):
+    #         print(a)
+    # print()
+    if not auction:
+        logger.error(f'{time.perf_counter() - start}, auction: {auction}')
 
 async def shedulers():
     start = time.perf_counter()
@@ -43,6 +56,7 @@ async def shedulers():
     aioschedule.every(5).seconds.do(fill_order_info_job)
     aioschedule.every(3).seconds.do(find_order_job)
     # aioschedule.every(1).seconds.do(timer, start)
+    aioschedule.every(1).seconds.do(refresh_auction)
     while True:
         await aioschedule.run_pending()
         await asyncio.sleep(1)
@@ -50,6 +64,11 @@ async def shedulers():
 
 async def main():
     logger.info('Starting bot')
+    await refresh_async_cookies(settings.LOGIN, settings.PASSWORD)
+    cookies = await read_cookies_dict()
+    print(cookies)
+    token = await refresh_token(cookies)
+    print(token)
     await asyncio.create_task(shedulers())
 
 
