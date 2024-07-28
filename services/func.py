@@ -1,33 +1,20 @@
 import asyncio
 import datetime
 import json
-import time
-from math import floor, ceil
-from pprint import pprint
-
-
-import requests
-
-
-
-import datetime
-import json
 import pickle
 import re
+import time
+from math import ceil, floor
+from pprint import pprint
 from typing import Optional, Sequence
 
 import aiohttp
-from sqlalchemy import select, insert, update, delete
-from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
+import requests
+from sqlalchemy import delete, insert, select, update
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-
-
-
-from database.db import User, Session, Order, Message, engine, BotSettings
-
-
-from config.bot_settings import logger, settings, BASE_DIR
-
+from config.bot_settings import BASE_DIR, logger, settings
+from database.db import BotSettings, Message, Order, Session, User, engine
 
 err_log = logger
 
@@ -40,11 +27,11 @@ async def refresh_async_cookies(login='TUTU', password='123', lcid='1049') -> di
             'lcid': lcid,}
     cookies_dict = {}
     async with aiohttp.ClientSession() as session:
-        async with session.post('https://dev2.bgruz.com/Account/LogIn',
+        async with session.post(f'{settings.HOST}/Account/LogIn',
                                headers=None,
                                params=data) as response:
             cookies_jar = session.cookie_jar
-            cookies = cookies_jar.filter_cookies('https://dev2.bgruz.com')
+            cookies = cookies_jar.filter_cookies(f'{settings.HOST}')
 
             for key, cookie in cookies.items():
                 cookies_dict[key] = cookie.value
@@ -107,7 +94,7 @@ async def get_order_info(order_id: str, cookies) -> dict:
     :return: dict
     """
     logger.info(f'Получаем полное инфо по ID {order_id}')
-    url = f'https://dev2.bgruz.com/Bid/GetBidFormData?bidId={order_id}&bidType=B&formMode=1'
+    url = f'{settings.HOST}/Bid/GetBidFormData?bidId={order_id}&bidType=B&formMode=1'
     response_json = await get_aiohttp_response(url, response_type='json', cookies=cookies, )
     data = response_json
     logger.debug(f'order_info: {data}')
@@ -150,7 +137,7 @@ async def get_order_info_from_db(order_id: str, cookies) -> dict:
 
 
 async def refresh_token(cookies):
-    response = await get_aiohttp_response(url='https://dev2.bgruz.com/signalr/negotiate', cookies=cookies, response_type='json', content_type='application/json')
+    response = await get_aiohttp_response(url=f'{settings.HOST}/signalr/negotiate', cookies=cookies, response_type='json', content_type='application/json')
     token = response.get('ConnectionToken')
     with open(BASE_DIR / 'token.txt', 'w') as file:
         file.write(token)
@@ -172,7 +159,7 @@ async def get_auction_data(cookies, token) -> list:
     data = {
         'data': '{"H":"matchingpushhub","M":"GetQuotationByUser","A":[],"I":2}',
     }
-    url = 'https://dev2.bgruz.com/signalr/send'
+    url = f'{settings.HOST}/signalr/send'
     response = await post_aiohttp_response(url, response_type='json', params=params,  data=data, cookies=cookies, content_type='application/json')
     result = json.loads(response.get("R"))
     if result:
@@ -229,7 +216,7 @@ async def cancel_order(order_id, token, cookies):
         'data': json.dumps(data_json).replace(' ', '')
     }
 
-    response = await post_aiohttp_response(url='https://dev2.bgruz.com/signalr/send', cookies=cookies, data=data, params=params)
+    response = await post_aiohttp_response(url=f'{settings.HOST}/signalr/send', cookies=cookies, data=data, params=params)
     logger.info(f'Отмена заказа {order_id}: {response} {response}')
 
 
@@ -318,7 +305,7 @@ async def create_order(order_info, cookies=None):
     pprint(data)
 
     # response = requests.post('https://dev2.bgruz.com/Bid/CreateBids', cookies=cookies, data=data)
-    response = await post_aiohttp_response(url='https://dev2.bgruz.com/Bid/CreateBids', cookies=cookies, data=data)
+    response = await post_aiohttp_response(url=f'{settings.HOST}/Bid/CreateBids', cookies=cookies, data=data)
     print(response)
 
 
@@ -396,7 +383,7 @@ async def get_active_orders(login='tutu', password='123') -> list[dict]:
     """
     logger.debug('Получаем активные заказы')
     try:
-        url = 'https://dev2.bgruz.com/BuyBid/GetGridData'
+        url = f'{settings.HOST}/BuyBid/GetGridData'
         params = {
             'rows': '100',
             'page': '1',

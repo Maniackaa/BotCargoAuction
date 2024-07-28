@@ -11,18 +11,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 class Settings(BaseSettings):
-    BOT_TOKEN: str  # Токен для доступа к телеграм-боту
     ADMIN_IDS: list  # Список id администраторов бота
     BASE_DIR: Path = BASE_DIR
     TIMEZONE: str = "Europe/Moscow"
     USE_REDIS: bool = False
     LOG_TO_FILE: bool = False
-    EMAIL_HOST_USER: str
-    EMAIL_HOST_PASSWORD: str
-    SERVER_EMAIL: str
-    EMAIL_PORT: int
     LOGIN: str
     PASSWORD: str
+    HOST: str
 
     model_config = SettingsConfigDict(env_file=BASE_DIR / ".env")
 
