@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     LOGIN: str
     PASSWORD: str
     HOST: str
+    STARTTIME: int = 60
+    ENDTIME: int = 10
 
     model_config = SettingsConfigDict(env_file=BASE_DIR / ".env")
 

@@ -26,7 +26,7 @@ async def get_auction_data_from_order(order: Order) -> dict:
 
 async def last_second_task(order: Order, start_auction):
     logger.info(f'начата задача на последних секундах {order}. До активации: {order.time_to_activation()}')
-    await asyncio.sleep(order.time_to_activation() - 20)
+    await asyncio.sleep(order.time_to_activation() - 15)
     logger.info(f'До активации: {order.time_to_activation()}')
     start = time.perf_counter()
     # cookies = await get_async_cookies(settings.LOGIN, settings.PASSWORD)
@@ -35,7 +35,7 @@ async def last_second_task(order: Order, start_auction):
     cookies = await read_cookies_dict()
     token = await read_token()
     order_info = await get_order_info_from_db(order.order_id, cookies=cookies)
-    await asyncio.sleep(order.time_to_activation() - 10)
+    await asyncio.sleep(order.time_to_activation() - settings.ENDTIME)
     logger.info(f'АКТИВРИУЕМСЯ. Проверяем акуцион. Осталось {order.time_to_activation()}')
     order_auction = await get_auction_data_from_order(order)
     new_bid_count = order_auction.get('SaleBidCount')

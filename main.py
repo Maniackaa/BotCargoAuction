@@ -32,10 +32,11 @@ async def fill_order_info_job():
 
 async def find_order_job():
     logger.debug('Задача поиска заказов для работы')
-    orders = await find_orders_to_job()
+    orders = await find_orders_to_job(settings.STARTTIME)
     for order in orders:
         logger.info(f'Запускаем заказ {order}')
         asyncio.create_task(task_order_check(order))
+
 
 async def refresh_auction():
     logger.debug('refresh_auction')
